@@ -1,0 +1,5 @@
+{
+  "name": "Digitailor",
+  "description": "Inflate any file to a specific size or compress images. All processing is done offline and securely on your device. Your files are never uploaded.",
+  "requestFramePermissions": []
+}
