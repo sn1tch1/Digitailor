@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 // --- CONFIGURATION ---
@@ -178,9 +177,9 @@ const ConfigureStep: React.FC<{ file: File; onProcess: (mode: Mode, options: any
                 <label className="font-semibold block mb-2">Action</label>
                 <div className="flex gap-2 rounded-lg bg-black/5 dark:bg-white/5 p-1">
                     {isCompressible && (
-                        <button onClick={() => setMode('compress')} className={`flex-1 p-2 rounded-md text-sm font-medium transition-colors ${mode === 'compress' ? 'bg-[#F9F7F3] dark:bg-[#2C3A41] shadow-sm' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>Compress</button>
+                        <button onClick={() => setMode('compress')} className={`flex-1 p-2 rounded-md text-sm font-medium transition-colors ${mode === 'compress' ? 'bg-[#F9F7F3] dark:bg-[#2C3A41] shadow-sm' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>Compress Image</button>
                     )}
-                    <button onClick={() => setMode('inflate')} className={`flex-1 p-2 rounded-md text-sm font-medium transition-colors ${mode === 'inflate' ? 'bg-[#F9F7F3] dark:bg-[#2C3A41] shadow-sm' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>Inflate</button>
+                    <button onClick={() => setMode('inflate')} className={`flex-1 p-2 rounded-md text-sm font-medium transition-colors ${mode === 'inflate' ? 'bg-[#F9F7F3] dark:bg-[#2C3A41] shadow-sm' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>Inflate File</button>
                 </div>
             </div>
             
@@ -456,16 +455,16 @@ const App: React.FC = () => {
     ];
     
     const featureItems = [
-        { icon: ShieldCheckIcon, title: "Privacy First", description: "Your files are never uploaded to a server. All processing happens directly in your browser, ensuring your data remains private and secure." },
-        { icon: ScissorsIcon, title: "Artisanal Precision", description: "Whether you need to shrink large images or inflate a file to meet a minimum size requirement, this tool has you covered with exact precision." },
-        { icon: ZapIcon, title: "Blazing Fast", description: "Leveraging your device's processing power means no waiting for uploads or downloads from a server. Get your resized files almost instantly." }
+        { icon: ShieldCheckIcon, title: "100% Private & Secure", description: "Your files are never uploaded to a server. All processing happens directly in your browser, ensuring your data remains private and secure." },
+        { icon: ScissorsIcon, title: "Precise File Size Control", description: "Whether you need to shrink large images with our compressor or inflate a file to meet a minimum size requirement, this tool gives you precise control." },
+        { icon: ZapIcon, title: "Blazing Fast Processing", description: "Leveraging your device's processing power means no waiting for uploads or downloads from a server. Get your resized files almost instantly." }
     ];
 
     const faqItems = [
-        { q: "Are my files secure?", a: "Absolutely. This tool operates 100% on your local machine. Your files never leave your computer, making it as secure as working on your own desktop." },
-        { q: "What is file inflation?", a: "File inflation is the process of adding extra, empty data to a file to increase its size to a specific target. This is useful for meeting minimum file size requirements for online submissions without altering the original content." },
-        { q: "What happens to image quality when compressing?", a: "Compressing a JPEG image is 'lossy,' which means some visual data is discarded to reduce file size. Our tool intelligently finds the highest possible quality to match your target size, but some degradation is unavoidable. The goal is to make it as unnoticeable as possible." },
-        { q: "Is this service truly free?", a: "Yes, this tool is completely free to use. Since all processing is done in your browser, we don't have expensive server costs, allowing us to offer this service at no charge." }
+        { q: "Is it safe to use this tool?", a: "Absolutely. Your privacy is our top priority. All processing is done locally in your browser using JavaScript. Your files are never uploaded to any server, making Digitailor a completely secure tool for resizing files." },
+        { q: "How do I increase a file's size?", a: "This process is called 'file inflation.' Our tool adds harmless, empty data (padding) to your file until it reaches the exact target size you specify. This is perfect for meeting minimum file size requirements for online submissions without altering the original content." },
+        { q: "How does image compression work?", a: "Compressing a JPEG image is 'lossy,' which means some visual data is discarded to reduce file size. Our tool intelligently finds the highest possible quality to match your target size, but some degradation is unavoidable. The goal is to make it as unnoticeable as possible." },
+        { q: "Is this online tool really free?", a: "Yes, this tool is completely free to use. Since all processing is done in your browser, we don't have expensive server costs, allowing us to offer this service at no charge to you." }
     ];
 
     return (
@@ -515,15 +514,15 @@ const App: React.FC = () => {
                 <section id="hero" className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center relative overflow-hidden">
                     <HeroDecorations />
                     <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#3A3A3A] dark:text-[#F9F7F3]" style={{ fontFamily: "'Playfair Display', serif" }}>
-                        Crafted to Perfection
-                    </h1>
-                    <p className="mt-4 text-2xl sm:text-3xl text-[#9DB0A2] font-bold">
                         Your Files, Precisely Tailored.
+                    </h1>
+                    <h2 className="mt-4 text-2xl sm:text-3xl text-[#9DB0A2] font-bold">
+                        Inflate & Compress to an Exact Size
+                    </h2>
+                    <p className="mt-8 max-w-2xl mx-auto text-md text-[#3A3A3A]/70 dark:text-[#F9F7F3]/70">
+                        Need to meet a minimum file size? Use our file inflator to increase any file's size to your exact requirement. Need to shrink a picture? Our image compressor reduces file size while aiming for a specific target. Secure, private, and free.
                     </p>
-                    <p className="mt-8 max-w-xl mx-auto text-md text-[#3A3A3A]/70 dark:text-[#F9F7F3]/70">
-                        Set the precise final size for any file or find the smallest guaranteed fit for your images. All adjustments are made with artisanal precision—all securely in your browser.
-                    </p>
-                     <p className="mt-4 text-sm text-[#3A3A3A]/50 dark:text-[#F9F7F3]/50 italic">*No server uploads. Your files never leave the device.</p>
+                     <p className="mt-4 text-sm text-[#3A3A3A]/50 dark:text-[#F9F7F3]/50 italic">*No server uploads. Your files never leave your device.</p>
                     <div className="mt-10 max-w-lg mx-auto">
                         {renderStep()}
                     </div>
