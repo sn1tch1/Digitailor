@@ -6,7 +6,7 @@ const COMPRESSIBLE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MIN_COMPRESS_SIZE_BYTES = 10 * 1024; // 10 KB
 
 // --- TYPE DEFINITIONS ---
-type Step = 'upload' | 'configure' | 'processing' | 'success' | 'error';
+type Step = 'upload' | 'analyzing' | 'configure' | 'processing' | 'success' | 'error';
 type Mode = 'compress' | 'inflate';
 type ModalType = 'terms' | 'privacy' | 'contact' | 'donate';
 
@@ -32,6 +32,34 @@ const formatBytes = (bytes: number): string => {
   const kb = bytes / k;
   const mb = kb / k;
   return `${kb.toFixed(1)} KB / ${mb.toFixed(2)} MB`;
+};
+
+const calculateMinCompressedSize = (file: File): Promise<number> => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const imageBitmap = await createImageBitmap(file);
+            const canvas = document.createElement('canvas');
+            canvas.width = imageBitmap.width;
+            canvas.height = imageBitmap.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Could not get canvas context');
+            ctx.drawImage(imageBitmap, 0, 0);
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) {
+                        resolve(blob.size);
+                    } else {
+                        // Fallback if toBlob fails, effectively disabling compression
+                        resolve(file.size);
+                    }
+                },
+                'image/jpeg',
+                0 // Lowest quality
+            );
+        } catch (e) {
+            reject(e);
+        }
+    });
 };
 
 // --- ICONS ---
@@ -92,32 +120,40 @@ const UploadStep: React.FC<{ onFileSelect: (file: File) => void }> = ({ onFileSe
 
     return (
         <div 
-            className="w-full text-center p-8 border-2 border-dashed border-[#9DB0A2]/80 dark:border-[#9DB0A2]/60 rounded-xl cursor-pointer hover:border-[#9DB0A2] dark:hover:border-[#9DB0A2] transition-all duration-300 bg-transparent"
+            className="w-full text-center p-8 border-2 border-dashed border-orange-500/60 dark:border-orange-400/60 rounded-xl cursor-pointer hover:border-orange-500 dark:hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/20 dark:hover:shadow-orange-400/20 transition-all duration-300 bg-transparent"
             onClick={() => fileInputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
         >
-            <UploadIcon className="mx-auto h-8 w-8 text-[#3A3A3A]/70 dark:text-[#F9F7F3]/70 mb-4" />
-            <h3 className="text-lg font-semibold text-current">Drop a File Here to Start Measuring</h3>
+            <UploadIcon className="mx-auto h-8 w-8 text-orange-500 dark:text-orange-400 mb-4" />
+            <h3 className="text-lg font-semibold text-current">Drop a File and Start Tailoring</h3>
             <p className="text-current/60 mt-1 text-sm">Or click to select a file</p>
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
         </div>
     );
 };
 
-const ConfigureStep: React.FC<{ file: File; onProcess: (mode: Mode, options: any) => void; onCancel: () => void; }> = ({ file, onProcess, onCancel }) => {
+const ConfigureStep: React.FC<{ file: File; onProcess: (mode: Mode, options: any) => void; onCancel: () => void; minCompressedSize: number | null; }> = ({ file, onProcess, onCancel, minCompressedSize }) => {
     const isImage = COMPRESSIBLE_IMAGE_TYPES.includes(file.type);
-    const isCompressible = isImage && file.size > MIN_COMPRESS_SIZE_BYTES;
+    const isCompressible = isImage && minCompressedSize !== null && file.size > minCompressedSize;
     const [mode, setMode] = useState<Mode>(isCompressible ? 'compress' : 'inflate');
     
     const originalSizeKb = file.size / 1024;
-    const sliderMin = mode === 'compress' ? MIN_COMPRESS_SIZE_BYTES / 1024 : Math.ceil(originalSizeKb);
-    const sliderMax = mode === 'compress' ? Math.floor(originalSizeKb) : MAX_FILE_SIZE_BYTES / 1024;
+    
+    const sliderMin = mode === 'compress' 
+        ? Math.ceil((minCompressedSize || MIN_COMPRESS_SIZE_BYTES) / 1024) 
+        : Math.ceil(originalSizeKb);
+        
+    const sliderMax = mode === 'compress' 
+        ? Math.floor(originalSizeKb) 
+        : MAX_FILE_SIZE_BYTES / 1024;
 
     const getInitialTargetKb = useCallback(() => {
-        return mode === 'compress'
-            ? Math.max(sliderMin, Math.round(originalSizeKb / 2))
-            : Math.round(originalSizeKb) + 100;
+        if (mode === 'compress') {
+            // Default to half size, but ensure it's not below the possible minimum.
+            return Math.max(sliderMin, Math.round(originalSizeKb / 2));
+        }
+        return Math.round(originalSizeKb) + 100;
     }, [mode, originalSizeKb, sliderMin]);
 
     const [targetSizeKb, setTargetSizeKb] = useState(getInitialTargetKb);
@@ -214,11 +250,16 @@ const ConfigureStep: React.FC<{ file: File; onProcess: (mode: Mode, options: any
                         </p>
                     </div>
                 </div>
-                <p className="text-xs text-current/50 mt-2 text-center">
-                  {mode === 'compress' 
-                    ? `Compresses image to approximately this size.` 
-                    : `Pads file to exactly this size.`}
+                 <p className="text-xs text-current/50 mt-2 text-center">
+                    {mode === 'compress'
+                        ? `Compresses and pads image to exactly this size.`
+                        : `Pads file to exactly this size.`}
                 </p>
+                {mode === 'compress' && minCompressedSize && (
+                    <p className="text-xs text-current/50 mt-1 text-center">
+                        Minimum possible size is approx. {formatBytesSimple(minCompressedSize)}.
+                    </p>
+                )}
             </div>
 
             <button onClick={handleProcess} className="w-full mt-8 bg-[#3A3A3A] text-[#F9F7F3] dark:bg-[#F9F7F3] dark:text-[#3A3A3A] font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9DB0A2] dark:focus:ring-offset-[#2C3A41]">
@@ -335,6 +376,7 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [modal, setModal] = useState<ModalType | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [minCompressedSize, setMinCompressedSize] = useState<number | null>(null);
 
     useEffect(() => {
         document.body.style.overflow = modal || isMenuOpen ? 'hidden' : 'auto';
@@ -345,14 +387,30 @@ const App: React.FC = () => {
         setFile(null);
         setOutputFile(null);
         setError(null);
+        setMinCompressedSize(null);
     }, []);
 
-    const handleFileSelect = useCallback((selectedFile: File) => {
+    const handleFileSelect = useCallback(async (selectedFile: File) => {
         if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
             setError(`File is too large. Maximum size is ${formatBytesSimple(MAX_FILE_SIZE_BYTES)}.`);
             setStep('error');
             return;
         }
+
+        if (COMPRESSIBLE_IMAGE_TYPES.includes(selectedFile.type)) {
+            setStep('analyzing');
+            try {
+                const minSize = await calculateMinCompressedSize(selectedFile);
+                setMinCompressedSize(minSize);
+            } catch (e) {
+                setError('Could not analyze the image. It might be corrupted or in an unsupported format.');
+                setStep('error');
+                return;
+            }
+        } else {
+            setMinCompressedSize(null);
+        }
+
         setFile(selectedFile);
         setStep('configure');
     }, []);
@@ -383,7 +441,8 @@ const App: React.FC = () => {
                 let low = 0;
                 let high = 1;
                 let bestBlob: Blob | null = null;
-                for (let i = 0; i < 10; i++) { // Binary search for quality
+                // Binary search for the highest quality that results in a size <= targetSize
+                for (let i = 0; i < 10; i++) {
                     const mid = (low + high) / 2;
                     const currentBlob = await getBlob(mid);
                     if (currentBlob.size > targetSize) {
@@ -395,10 +454,15 @@ const App: React.FC = () => {
                 }
                 
                 if (!bestBlob) { 
-                    bestBlob = await getBlob(0.01);
+                    bestBlob = await getBlob(0);
+                    if (bestBlob.size > targetSize) {
+                        throw new Error(`Could not compress the image below ${formatBytesSimple(bestBlob.size)}.`);
+                    }
                 }
 
-                resultBlob = bestBlob;
+                const padding = new Uint8Array(Math.max(0, targetSize - bestBlob.size));
+                resultBlob = new Blob([bestBlob, padding], { type: 'image/jpeg' });
+
                 const nameParts = file.name.split('.').slice(0, -1);
                 outputFileName = `${nameParts.join('.')}-compressed.jpg`;
             } else { // inflate
@@ -440,7 +504,8 @@ const App: React.FC = () => {
     const renderStep = () => {
         switch (step) {
             case 'upload': return <UploadStep onFileSelect={handleFileSelect} />;
-            case 'configure': return file && <ConfigureStep file={file} onProcess={handleProcess} onCancel={resetState} />;
+            case 'analyzing': return <div className="flex flex-col items-center justify-center p-8"><Spinner className="h-12 w-12 text-[#9DB0A2]" /><p className="mt-4 text-current/70">Analyzing image...</p></div>;
+            case 'configure': return file && <ConfigureStep file={file} onProcess={handleProcess} onCancel={resetState} minCompressedSize={minCompressedSize} />;
             case 'processing': return <div className="flex flex-col items-center justify-center p-8"><Spinner className="h-12 w-12 text-[#9DB0A2]" /><p className="mt-4 text-current/70">Processing your file...</p></div>;
             case 'success': return outputFile && <SuccessStep outputFile={outputFile} onReset={resetState} />;
             case 'error': return error && <ErrorStep message={error} onReset={resetState} />;
